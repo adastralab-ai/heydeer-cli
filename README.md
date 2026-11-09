@@ -20,4 +20,5 @@ Requires Node.js 22.18 or later, which runs the TypeScript sources directly.
 pnpm install
 pnpm typecheck
 pnpm format
+pnpm build      # single executable at dist/heydeer
 ```
