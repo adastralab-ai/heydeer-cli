@@ -31,15 +31,27 @@ export interface Changes {
   uncommitted: boolean;
   files: ChangedFile[];
   excluded: ExcludedFile[];
+  skippedUntracked: string[];
   patch: Buffer;
+}
+
+export interface CollectOptions {
+  /** Branch or commit to compare against; origin's default branch when omitted. */
+  base?: string;
+  /** Also review untracked files that aren't gitignored. */
+  includeUntracked?: boolean;
 }
 
 /**
  * Collects the current branch and working tree changes against the merge base with `base`
- * (origin's default branch when omitted). The merge base must already be on origin, so the
- * reviewer can fetch it from GitHub and only the patch has to leave this machine.
+ * (origin's default branch when omitted). Untracked files are left out unless
+ * `includeUntracked` is set. The merge base must already be on origin, so the reviewer can
+ * fetch it from GitHub and only the patch has to leave this machine.
  */
-export function collectChanges(cwd: string, base?: string): Changes {
+export function collectChanges(
+  cwd: string,
+  { base, includeUntracked = false }: CollectOptions = {},
+): Changes {
   const root = gitLine(['rev-parse', '--show-toplevel'], { cwd });
   const options = { cwd: root };
 
@@ -64,11 +76,12 @@ export function collectChanges(cwd: string, base?: string): Changes {
     );
   }
 
-  const tree = snapshotWorkingTree(root);
-  const uncommitted = tree !== gitLine(['rev-parse', 'HEAD^{tree}'], options);
-  const untracked = new Set(
-    splitNul(git(['ls-files', '-z', '--others', '--exclude-standard'], options)),
+  const untrackedPaths = splitNul(
+    git(['ls-files', '-z', '--others', '--exclude-standard'], options),
   );
+  const untracked = new Set(includeUntracked ? untrackedPaths : []);
+  const tree = snapshotWorkingTree(root, includeUntracked);
+  const uncommitted = tree !== gitLine(['rev-parse', 'HEAD^{tree}'], options);
 
   const candidates = diffEntries(root, mergeBase, tree);
   const excluded: ExcludedFile[] = [];
@@ -126,6 +139,7 @@ export function collectChanges(cwd: string, base?: string): Changes {
     uncommitted,
     files,
     excluded: excluded.sort((a, b) => a.path.localeCompare(b.path)),
+    skippedUntracked: includeUntracked ? [] : untrackedPaths,
     patch: Buffer.concat(patches),
   };
 }
@@ -155,11 +169,12 @@ function defaultBranch(root: string): string {
 }
 
 /**
- * Writes the working tree, untracked files included, as a tree object. Staging into a copy of
- * the index leaves the user's staging area untouched while keeping git's stat cache, so
- * unchanged files aren't rehashed.
+ * Writes the working tree as a tree object: tracked files (staged ones included) and, with
+ * `includeUntracked`, untracked files that aren't gitignored. Staging into a copy of the index
+ * leaves the user's staging area untouched while keeping git's stat cache, so unchanged files
+ * aren't rehashed.
  */
-function snapshotWorkingTree(root: string): string {
+function snapshotWorkingTree(root: string, includeUntracked: boolean): string {
   const dir = mkdtempSync(join(tmpdir(), 'heydeer-'));
   try {
     const index = join(dir, 'index');
@@ -168,7 +183,7 @@ function snapshotWorkingTree(root: string): string {
     });
     if (existsSync(realIndex)) copyFileSync(realIndex, index);
     const options = { cwd: root, env: { GIT_INDEX_FILE: index } };
-    git(['add', '--all'], options);
+    git(['add', includeUntracked ? '--all' : '--update'], options);
     return gitLine(['write-tree'], options);
   } finally {
     rmSync(dir, { recursive: true, force: true });

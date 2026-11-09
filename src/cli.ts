@@ -2,13 +2,14 @@
 import { parseArgs, styleText } from 'node:util';
 import { collectChanges, type Changes } from './changes.ts';
 
-const USAGE = `Usage: heydeer review [--base <ref>]
+const USAGE = `Usage: heydeer review [--base <ref>] [--untracked]
 
-Reviews the current branch and uncommitted changes, untracked files included,
-against the merge base with origin's default branch.
+Reviews the current branch and uncommitted changes to tracked files against
+the merge base with origin's default branch.
 
 Options:
   --base <ref>  Branch or commit to compare against
+  --untracked   Also review untracked files that aren't gitignored
   -h, --help    Show this help`;
 
 function main(): number {
@@ -16,7 +17,11 @@ function main(): number {
   try {
     args = parseArgs({
       allowPositionals: true,
-      options: { base: { type: 'string' }, help: { type: 'boolean', short: 'h' } },
+      options: {
+        base: { type: 'string' },
+        untracked: { type: 'boolean' },
+        help: { type: 'boolean', short: 'h' },
+      },
     });
   } catch (error) {
     console.error(`${(error as Error).message}\n\n${USAGE}`);
@@ -32,7 +37,12 @@ function main(): number {
   }
 
   try {
-    printSummary(collectChanges(process.cwd(), args.values.base));
+    printSummary(
+      collectChanges(process.cwd(), {
+        base: args.values.base,
+        includeUntracked: args.values.untracked,
+      }),
+    );
     return 0;
   } catch (error) {
     console.error(styleText('red', (error as Error).message));
@@ -53,6 +63,7 @@ function printSummary(changes: Changes) {
 
   if (changes.files.length === 0 && changes.excluded.length === 0) {
     console.log(`No changes against ${changes.baseRef}.`);
+    printSkippedUntracked(changes);
     return;
   }
 
@@ -75,6 +86,19 @@ function printSummary(changes: Changes) {
       console.log(`     ${file.path.padEnd(width)}  ${styleText('dim', file.reason)}`);
     }
   }
+  printSkippedUntracked(changes);
+}
+
+function printSkippedUntracked(changes: Changes) {
+  const count = changes.skippedUntracked.length;
+  if (count === 0) return;
+  console.log();
+  console.log(
+    styleText(
+      'dim',
+      `Skipped ${plural(count, 'untracked file')}. Pass --untracked to review ${count === 1 ? 'it' : 'them'}.`,
+    ),
+  );
 }
 
 function plural(count: number, noun: string): string {
