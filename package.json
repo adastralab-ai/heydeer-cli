@@ -1,0 +1,23 @@
+{
+  "name": "heydeer",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Review local changes with HeyDeer before opening a pull request",
+  "type": "module",
+  "bin": {
+    "heydeer": "src/cli.ts"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check ."
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "oxfmt": "^0.77.0",
+    "typescript": "^7.0.2"
+  }
+}
