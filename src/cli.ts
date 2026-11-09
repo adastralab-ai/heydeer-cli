@@ -1,16 +1,20 @@
 #!/usr/bin/env node
 import { parseArgs, styleText } from 'node:util';
+import { findApiKey } from './api-key.ts';
 import { collectChanges, type Changes } from './changes.ts';
 
-const USAGE = `Usage: heydeer review [--base <ref>] [--untracked]
+const USAGE = `Usage: heydeer review [--base <ref>] [--include-untracked]
 
 Reviews the current branch and uncommitted changes to tracked files against
 the merge base with origin's default branch.
 
 Options:
-  --base <ref>  Branch or commit to compare against
-  --untracked   Also review untracked files that aren't gitignored
-  -h, --help    Show this help`;
+  --base <ref>         Branch or commit to compare against
+  --include-untracked  Also review untracked files that aren't gitignored
+  -h, --help           Show this help
+
+Environment:
+  HEYDEER_API_KEY      HeyDeer review API key (hdk_…)`;
 
 function main(): number {
   let args;
@@ -19,7 +23,7 @@ function main(): number {
       allowPositionals: true,
       options: {
         base: { type: 'string' },
-        untracked: { type: 'boolean' },
+        'include-untracked': { type: 'boolean' },
         help: { type: 'boolean', short: 'h' },
       },
     });
@@ -37,11 +41,13 @@ function main(): number {
   }
 
   try {
+    const apiKey = findApiKey();
     printSummary(
       collectChanges(process.cwd(), {
         base: args.values.base,
-        includeUntracked: args.values.untracked,
+        includeUntracked: args.values['include-untracked'],
       }),
+      apiKey,
     );
     return 0;
   } catch (error) {
@@ -50,7 +56,7 @@ function main(): number {
   }
 }
 
-function printSummary(changes: Changes) {
+function printSummary(changes: Changes, apiKey: string | undefined) {
   const head = [changes.branch, `at ${changes.head.slice(0, 8)}`].filter(Boolean).join(' ');
   console.log(`${styleText('dim', 'Repository')}  ${changes.repository}`);
   console.log(
@@ -58,6 +64,9 @@ function printSummary(changes: Changes) {
   );
   console.log(
     `${styleText('dim', 'Head      ')}  ${head}${changes.uncommitted ? ', with uncommitted changes' : ''}`,
+  );
+  console.log(
+    `${styleText('dim', 'API key   ')}  ${apiKey ? `${apiKey.slice(0, 12)}… from HEYDEER_API_KEY` : 'HEYDEER_API_KEY not set'}`,
   );
   console.log();
 
@@ -96,7 +105,7 @@ function printSkippedUntracked(changes: Changes) {
   console.log(
     styleText(
       'dim',
-      `Skipped ${plural(count, 'untracked file')}. Pass --untracked to review ${count === 1 ? 'it' : 'them'}.`,
+      `Skipped ${plural(count, 'untracked file')}. Pass --include-untracked to review ${count === 1 ? 'it' : 'them'}.`,
     ),
   );
 }

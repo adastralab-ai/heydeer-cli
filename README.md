@@ -4,14 +4,16 @@ Reviews local changes with HeyDeer before a pull request exists.
 
 ```sh
 cd path/to/your/repository
-node path/to/heydeer-cli/src/cli.ts review [--base <ref>] [--untracked]
+node path/to/heydeer-cli/src/cli.ts review [--base <ref>] [--include-untracked]
 ```
 
 A review covers the current branch plus uncommitted changes to tracked files, against the merge
-base with origin's default branch. Untracked files are left out unless you pass `--untracked`;
+base with origin's default branch. Untracked files are left out unless you pass `--include-untracked`;
 gitignored files are always left out. `origin` must be a GitHub repository and the merge
 base must already be on it. Uploading isn't built yet: the command prints what it would send and
 which files it would keep on the machine.
+
+Set `HEYDEER_API_KEY` to a HeyDeer review API key (`hdk_…`) to authenticate.
 
 Requires Node.js 22.18 or later, which runs the TypeScript sources directly.
 
