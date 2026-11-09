@@ -21,5 +21,6 @@
     "bun": "1.4.4",
     "oxfmt": "^0.77.0",
     "typescript": "^7.0.2"
-  }
+  },
+  "packageManager": "pnpm@12.4.2"
 }
