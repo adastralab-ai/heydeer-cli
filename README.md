@@ -13,7 +13,23 @@ gitignored files are always left out. `origin` must be a GitHub repository and t
 base must already be on it. Uploading isn't built yet: the command prints what it would send and
 which files it would keep on the machine.
 
-Set `HEYDEER_API_KEY` to a HeyDeer review API key (`hdk_…`) to authenticate.
+## Signing in
+
+```sh
+heydeer login    # sign in with GitHub
+heydeer status   # who the CLI acts as
+heydeer logout   # end the sign-in on this computer
+```
+
+`heydeer login` uses GitHub's device flow: open the link it prints, enter the code and
+approve HeyDeer on GitHub. A first sign-in also creates your HeyDeer account. Reviews then
+work in any repository HeyDeer is installed on where you have write access.
+
+The CLI keeps only a HeyDeer token, never your GitHub token, in `~/.config/heydeer/credentials.json`
+(`%APPDATA%\heydeer` on Windows), readable only by you. It lasts 90 days after its last use.
+
+For automation, set `HEYDEER_API_KEY` to a workspace review API key (`hdk_…`) instead; it
+takes precedence over a sign-in. `HEYDEER_URL` points the CLI at another HeyDeer site.
 
 Requires Node.js 22.18 or later, which runs the TypeScript sources directly.
 

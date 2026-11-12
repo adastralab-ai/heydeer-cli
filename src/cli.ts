@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 import { parseArgs, styleText } from 'node:util';
-import { findApiKey } from './api-key.ts';
+import { login, logout, resolveCredential, status, type Credential } from './auth.ts';
 import { collectChanges, type Changes } from './changes.ts';
 
-const USAGE = `Usage: heydeer review [--base <ref>] [--include-untracked]
+const USAGE = `Usage: heydeer <command>
 
-Reviews the current branch and uncommitted changes to tracked files against
-the merge base with origin's default branch.
+Commands:
+  review [--base <ref>] [--include-untracked]
+                       Review the current branch and uncommitted changes to
+                       tracked files against the merge base with origin's
+                       default branch
+  login                Sign in with GitHub
+  logout               Sign out on this computer
+  status               Show who the CLI acts as
 
 Options:
   --base <ref>         Branch or commit to compare against
@@ -14,9 +20,11 @@ Options:
   -h, --help           Show this help
 
 Environment:
-  HEYDEER_API_KEY      HeyDeer review API key (hdk_…)`;
+  HEYDEER_API_KEY      A workspace review API key (hdk_…), used instead of
+                       a sign-in, for automation
+  HEYDEER_URL          The HeyDeer site, https://heydeer.ai by default`;
 
-function main(): number {
+async function main(): Promise<number> {
   let args;
   try {
     args = parseArgs({
@@ -35,19 +43,30 @@ function main(): number {
     console.log(USAGE);
     return 0;
   }
-  if (args.positionals.length !== 1 || args.positionals[0] !== 'review') {
+  const command = args.positionals.length === 1 ? args.positionals[0] : undefined;
+  if (!command || !['review', 'login', 'logout', 'status'].includes(command)) {
     console.error(USAGE);
     return 2;
   }
 
   try {
-    const apiKey = findApiKey();
+    if (command === 'login') {
+      const user = await login((line) => console.log(line));
+      console.log(`Signed in to HeyDeer as ${user}.`);
+      return 0;
+    }
+    if (command === 'logout') {
+      console.log((await logout()) ? 'Signed out.' : 'Not signed in.');
+      return 0;
+    }
+    if (command === 'status') return await printStatus();
+    const credential = resolveCredential();
     printSummary(
       collectChanges(process.cwd(), {
         base: args.values.base,
         includeUntracked: args.values['include-untracked'],
       }),
-      apiKey,
+      credential,
     );
     return 0;
   } catch (error) {
@@ -56,7 +75,29 @@ function main(): number {
   }
 }
 
-function printSummary(changes: Changes, apiKey: string | undefined) {
+async function printStatus(): Promise<number> {
+  const current = await status();
+  if (current.kind === 'api-key') {
+    console.log(`Using the API key ${current.prefix}… from HEYDEER_API_KEY.`);
+    return 0;
+  }
+  if (current.kind === 'session') {
+    const until = current.expiresAt ? `, until ${current.expiresAt.slice(0, 10)} unless used` : '';
+    console.log(`Signed in as ${current.login} on ${current.name}${until}.`);
+    return 0;
+  }
+  console.log(current.reason ?? 'Not signed in. Run heydeer login.');
+  return 1;
+}
+
+function describeCredential(credential: Credential | undefined): string {
+  if (!credential) return 'not signed in; run heydeer login';
+  if (credential.kind === 'api-key')
+    return `${credential.token.slice(0, 12)}… from HEYDEER_API_KEY`;
+  return `signed in as ${credential.login}`;
+}
+
+function printSummary(changes: Changes, credential: Credential | undefined) {
   const head = [changes.branch, `at ${changes.head.slice(0, 8)}`].filter(Boolean).join(' ');
   console.log(`${styleText('dim', 'Repository')}  ${changes.repository}`);
   console.log(
@@ -65,9 +106,7 @@ function printSummary(changes: Changes, apiKey: string | undefined) {
   console.log(
     `${styleText('dim', 'Head      ')}  ${head}${changes.uncommitted ? ', with uncommitted changes' : ''}`,
   );
-  console.log(
-    `${styleText('dim', 'API key   ')}  ${apiKey ? `${apiKey.slice(0, 12)}… from HEYDEER_API_KEY` : 'HEYDEER_API_KEY not set'}`,
-  );
+  console.log(`${styleText('dim', 'HeyDeer   ')}  ${describeCredential(credential)}`);
   console.log();
 
   if (changes.files.length === 0 && changes.excluded.length === 0) {
@@ -120,4 +159,4 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-process.exitCode = main();
+process.exitCode = await main();
