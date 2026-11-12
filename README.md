@@ -16,16 +16,16 @@ which files it would keep on the machine.
 ## Signing in
 
 ```sh
-heydeer login    # sign in with GitHub
+heydeer login    # sign in to HeyDeer
 heydeer status   # who the CLI acts as
 heydeer logout   # end the sign-in on this computer
 ```
 
-`heydeer login` uses GitHub's device flow: open the link it prints, enter the code and
-approve HeyDeer on GitHub. A first sign-in also creates your HeyDeer account. Reviews then
-work in any repository HeyDeer is installed on where you have write access.
+`heydeer login` prints a link and a code: open the link, sign in to HeyDeer (with GitHub, which
+also creates your account), enter the code and allow the sign-in. Reviews then work in any
+repository HeyDeer is installed on where you have write access.
 
-The CLI keeps only a HeyDeer token, never your GitHub token, in `~/.config/heydeer/credentials.json`
+The CLI never sees your GitHub credentials. It keeps only a HeyDeer token, in `~/.config/heydeer/credentials.json`
 (`%APPDATA%\heydeer` on Windows), readable only by you. It lasts 90 days after its last use.
 
 For automation, set `HEYDEER_API_KEY` to a workspace review API key (`hdk_…`) instead; it

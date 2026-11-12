@@ -85,98 +85,58 @@ function failure(body: ErrorBody, fallback: string): Error {
 }
 
 type DeviceCode = {
-  device_code: string;
-  user_code: string;
-  verification_uri: string;
-  expires_in: number;
+  deviceCode: string;
+  userCode: string;
+  verificationUri: string;
+  expiresIn: number;
   interval: number;
 };
-type AccessToken = {
-  access_token?: string;
-  refresh_token?: string;
-  expires_in?: number;
-  error?: string;
-  error_description?: string;
-  interval?: number;
-};
-
-async function github<T>(path: string, body: Record<string, string>): Promise<T> {
-  const res = await fetch('https://github.com' + path, {
-    method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!res.ok) throw new Error(`GitHub answered ${res.status} to ${path}.`);
-  return (await res.json()) as T;
-}
+type DeviceToken =
+  | { status: 'pending'; interval: number }
+  | { status: 'slow_down'; interval: number }
+  | { status: 'denied' }
+  | { status: 'expired' }
+  | { status: 'approved'; token: string; session: { user: { login: string } } };
 
 /**
- * Signs in with GitHub's device flow, using HeyDeer's GitHub App. The person
- * approves on github.com, which also creates their HeyDeer account. HeyDeer
- * swaps the GitHub token for its own once; only that one is saved.
+ * Signs in with a code the person enters on HeyDeer's site, signed in there as
+ * usual (with GitHub, which also creates their account). The CLI never sees a
+ * GitHub credential; it keeps only the HeyDeer token it gets back.
  */
 export async function login(log: (line: string) => void): Promise<string> {
-  const config = await heydeer<{ github?: { clientId?: string } } & ErrorBody>(
-    '/api/v1/cli/config',
-  );
-  const clientId = config.body.github?.clientId;
-  if (config.status !== 200 || !clientId)
-    throw failure(config.body, `Couldn't reach HeyDeer at ${heydeerUrl()}.`);
-
-  const device = await github<DeviceCode & { error?: string; error_description?: string }>(
-    '/login/device/code',
-    { client_id: clientId },
-  );
-  if (device.error) throw new Error(device.error_description || `GitHub refused: ${device.error}.`);
-  log(`Open ${device.verification_uri} and enter the code ${device.user_code}`);
-  log('Waiting for you to approve HeyDeer on GitHub…');
+  const started = await heydeer<DeviceCode & ErrorBody>('/api/v1/cli/device', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: hostname() || 'unknown computer' }),
+  });
+  if (started.status !== 201 || !started.body.deviceCode)
+    throw failure(started.body, `Couldn't reach HeyDeer at ${heydeerUrl()}.`);
+  const device = started.body;
+  log(`Open ${device.verificationUri} and enter the code ${device.userCode}`);
+  log('Waiting for you to allow the sign-in…');
 
   let interval = Math.max(device.interval, 1) * 1000;
-  const deadline = Date.now() + device.expires_in * 1000;
-  let token: AccessToken | undefined;
+  const deadline = Date.now() + device.expiresIn * 1000;
   while (Date.now() < deadline) {
     await sleep(interval);
-    const answer = await github<AccessToken>('/login/oauth/access_token', {
-      client_id: clientId,
-      device_code: device.device_code,
-      grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
-    });
-    if (answer.access_token) {
-      token = answer;
-      break;
-    }
-    if (answer.error === 'authorization_pending') continue;
-    if (answer.error === 'slow_down') {
-      interval = (answer.interval ?? interval / 1000 + 5) * 1000;
-      continue;
-    }
-    if (answer.error === 'access_denied') throw new Error('Sign-in was canceled on GitHub.');
-    if (answer.error === 'expired_token') break;
-    throw new Error(answer.error_description || `GitHub refused the sign-in: ${answer.error}.`);
-  }
-  if (!token?.access_token) throw new Error('The code expired. Run heydeer login again.');
-
-  const created = await heydeer<{ token?: string; user?: { login?: string } } & ErrorBody>(
-    '/api/v1/cli/sessions',
-    {
+    const answer = await heydeer<DeviceToken & ErrorBody>('/api/v1/cli/device/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        github: {
-          accessToken: token.access_token,
-          ...(token.refresh_token ? { refreshToken: token.refresh_token } : {}),
-          ...(token.expires_in ? { expiresIn: token.expires_in } : {}),
-        },
-        name: hostname() || 'unknown computer',
-      }),
-    },
-  );
-  const login = created.body.user?.login;
-  if (created.status !== 201 || !created.body.token || !login)
-    throw failure(created.body, `HeyDeer couldn't sign you in (${created.status}).`);
-  saveSession({ url: heydeerUrl(), token: created.body.token, login });
-  return login;
+      body: JSON.stringify({ deviceCode: device.deviceCode }),
+    });
+    if (answer.status !== 200) throw failure(answer.body, `HeyDeer answered ${answer.status}.`);
+    const result = answer.body;
+    if (result.status === 'pending') continue;
+    if (result.status === 'slow_down') {
+      interval = (result.interval + 5) * 1000;
+      continue;
+    }
+    if (result.status === 'denied') throw new Error('The sign-in was denied.');
+    if (result.status === 'expired') break;
+    saveSession({ url: heydeerUrl(), token: result.token, login: result.session.user.login });
+    return result.session.user.login;
+  }
+  throw new Error('The code expired. Run heydeer login again.');
 }
 
 /** Ends the saved sign-in on HeyDeer and removes it from this computer. */
