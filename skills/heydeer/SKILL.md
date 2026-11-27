@@ -36,7 +36,8 @@ the review and prints the findings. Nothing is posted to GitHub.
    several minutes, and longer for large changes. Run it in the background if
    your tool limits how long a command can run, and don't start another review
    while it runs. Interrupting it cancels the review.
-3. The JSON result is on stdout.
+3. The JSON result is on stdout. Any `status` other than `succeeded` means this
+   run produced no review; the result says why and whether a retry can help.
 
 ## Fix and review again
 
@@ -64,10 +65,15 @@ code again.
 
 ## After the pull request is opened
 
-- On GitHub, HeyDeer reviews every push to the pull request itself. It reports
-  each review in a check named HeyDeer Review and posts each finding as a
-  review conversation on the pull request. After fixing findings, just push:
-  don't reply that they're fixed or request another review.
+- On GitHub, HeyDeer reports each review in a check named HeyDeer Review on
+  the commit it reviewed, and posts each finding as a review conversation on
+  the pull request. Wait for the check on the latest commit to complete: its
+  output holds the whole review, including questions under Needs
+  clarification, and HeyDeer's unresolved conversations are the open findings.
+  After fixing findings, just push: don't reply that they're fixed. Depending on the
+  repository's settings, HeyDeer reviews pushes itself or only on request. If
+  no new review starts within a few minutes, ask the user before requesting
+  one with `@heydeer review`.
 - To decline a finding, reply in its conversation with the reason, or resolve
   it. HeyDeer then stops raising it, as long as the reply comes from the pull
   request's author or someone with write access.

@@ -53,20 +53,27 @@ The [`heydeer` skill](skills/heydeer/SKILL.md) teaches your coding agent to
 review its changes with HeyDeer before it pushes, fix the findings and review
 again, then work through HeyDeer's review once the pull request is open.
 
-Install it for any agent that supports [Agent Skills](https://agentskills.io):
-
-```sh
-npx skills add adastralab-ai/heydeer-cli
-```
-
-Or as a plugin in Claude Code:
+### Claude Code
 
 ```
 /plugin marketplace add adastralab-ai/heydeer-cli
 /plugin install heydeer@heydeer
 ```
 
-The repository is also a plugin for Codex and Cursor.
+### Codex
+
+```sh
+codex plugin marketplace add adastralab-ai/heydeer-cli
+codex plugin add heydeer@heydeer
+```
+
+### Cursor and other agents
+
+For Cursor or any other agent that supports [Agent Skills](https://agentskills.io):
+
+```sh
+npx skills add adastralab-ai/heydeer-cli
+```
 
 ## Uninstall
 
