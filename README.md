@@ -2,7 +2,7 @@
 
 Review your changes with [HeyDeer](https://heydeer.ai) from the terminal, before you open a pull request.
 
-This repository hosts the CLI's release binaries and skills that teach coding agents to work with HeyDeer.
+This repository hosts the CLI's release binaries.
 
 ## Install
 
@@ -24,7 +24,7 @@ heydeer login
 
 ### Manual install
 
-Download the archive for your platform from the [latest release](https://github.com/adastralab-ai/heydeer-cli/releases/latest), check it against `SHA256SUMS`, and put the `heydeer` binary on your `PATH`.
+Download the archive for your platform from the [latest release](https://github.com/heydeer/cli/releases/latest), check it against `SHA256SUMS`, and put the `heydeer` binary on your `PATH`.
 
 | Platform                        | Archive                           |
 | ------------------------------- | --------------------------------- |
@@ -49,31 +49,15 @@ Run `heydeer --help` for all commands and options, or see the
 
 ## Use with coding agents
 
-The [`heydeer` skill](skills/heydeer/SKILL.md) teaches your coding agent to
-review its changes with HeyDeer before it pushes, fix the findings and review
-again, then work through HeyDeer's review once the pull request is open.
-
-### Claude Code
-
-```
-/plugin marketplace add adastralab-ai/heydeer-cli
-/plugin install heydeer@heydeer
-```
-
-### Codex
+Install the [`heydeer` skill](https://github.com/heydeer/skills#heydeer) so your
+coding agent reviews its changes with HeyDeer:
 
 ```sh
-codex plugin marketplace add adastralab-ai/heydeer-cli
-codex plugin add heydeer@heydeer
+npx skills@latest add heydeer/skills --skill heydeer
 ```
 
-### Cursor and other agents
-
-For Cursor or any other agent that supports [Agent Skills](https://agentskills.io):
-
-```sh
-npx skills add adastralab-ai/heydeer-cli
-```
+It's also available as a Claude Code and Codex plugin. See
+[heydeer/skills](https://github.com/heydeer/skills) for how to install it.
 
 ## Uninstall
 
@@ -83,12 +67,6 @@ rm -r ~/.config/heydeer
 ```
 
 The second line removes your saved sign-in.
-
-## License
-
-The skills and other files in this repository are available under the [MIT License](LICENSE),
-except the HeyDeer name and logo, including `assets/icon.svg`. See the
-[brand guidelines](https://heydeer.ai/brand) for how to refer to HeyDeer.
 
 ## About HeyDeer
 
