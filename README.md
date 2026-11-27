@@ -24,7 +24,7 @@ heydeer login
 
 ### Manual install
 
-Download the archive for your platform from the [latest release](https://github.com/adastralab-ai/heydeer-cli/releases/latest), check it against `SHA256SUMS`, and put the `heydeer` binary on your `PATH`.
+Download the archive for your platform from the [latest release](https://github.com/heydeer/cli/releases/latest), check it against `SHA256SUMS`, and put the `heydeer` binary on your `PATH`.
 
 | Platform                        | Archive                           |
 | ------------------------------- | --------------------------------- |
@@ -35,6 +35,8 @@ Download the archive for your platform from the [latest release](https://github.
 | Alpine and other musl, x64      | `heydeer-linux-x64-musl.tar.gz`   |
 | Alpine and other musl, arm64    | `heydeer-linux-arm64-musl.tar.gz` |
 
+On Alpine, install `libgcc` and `libstdc++` first: `apk add libgcc libstdc++`.
+
 ## Usage
 
 ```sh
@@ -44,6 +46,18 @@ heydeer review "Description of the changes and related issues e.g. issue #123."
 
 Run `heydeer --help` for all commands and options, or see the
 [CLI documentation](https://www.npmjs.com/package/heydeer).
+
+## Use with coding agents
+
+Install the [`heydeer` skill](https://github.com/heydeer/skills#heydeer) so your
+coding agent reviews its changes with HeyDeer:
+
+```sh
+npx skills@latest add heydeer/skills --skill heydeer
+```
+
+It's also available as a Claude Code and Codex plugin. See
+[heydeer/skills](https://github.com/heydeer/skills) for how to install it.
 
 ## Uninstall
 
