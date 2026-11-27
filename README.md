@@ -2,7 +2,7 @@
 
 Review your changes with [HeyDeer](https://heydeer.ai) from the terminal, before you open a pull request.
 
-This repository hosts the CLI's release binaries.
+This repository hosts the CLI's release binaries and skills that teach coding agents to work with HeyDeer.
 
 ## Install
 
@@ -35,6 +35,8 @@ Download the archive for your platform from the [latest release](https://github.
 | Alpine and other musl, x64      | `heydeer-linux-x64-musl.tar.gz`   |
 | Alpine and other musl, arm64    | `heydeer-linux-arm64-musl.tar.gz` |
 
+On Alpine, install `libgcc` and `libstdc++` first: `apk add libgcc libstdc++`.
+
 ## Usage
 
 ```sh
@@ -45,6 +47,27 @@ heydeer review "Description of the changes and related issues e.g. issue #123."
 Run `heydeer --help` for all commands and options, or see the
 [CLI documentation](https://www.npmjs.com/package/heydeer).
 
+## Use with coding agents
+
+The [`heydeer` skill](skills/heydeer/SKILL.md) teaches your coding agent to
+review its changes with HeyDeer before it pushes, fix the findings and review
+again, then work through HeyDeer's review once the pull request is open.
+
+Install it for any agent that supports [Agent Skills](https://agentskills.io):
+
+```sh
+npx skills add adastralab-ai/heydeer-cli
+```
+
+Or as a plugin in Claude Code:
+
+```
+/plugin marketplace add adastralab-ai/heydeer-cli
+/plugin install heydeer@heydeer
+```
+
+The repository is also a plugin for Codex and Cursor.
+
 ## Uninstall
 
 ```sh
@@ -53,6 +76,12 @@ rm -r ~/.config/heydeer
 ```
 
 The second line removes your saved sign-in.
+
+## License
+
+The skills and other files in this repository are available under the [MIT License](LICENSE),
+except the HeyDeer name and logo, including `assets/icon.svg`. See the
+[brand guidelines](https://heydeer.ai/brand) for how to refer to HeyDeer.
 
 ## About HeyDeer
 

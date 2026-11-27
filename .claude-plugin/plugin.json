@@ -1,0 +1,10 @@
+{
+  "name": "heydeer",
+  "version": "0.1.0",
+  "description": "Review local changes with HeyDeer before you push, and work through HeyDeer's review of your pull requests.",
+  "author": { "name": "HeyDeer", "url": "https://heydeer.ai" },
+  "homepage": "https://heydeer.ai/docs/cli",
+  "repository": "https://github.com/adastralab-ai/heydeer-cli",
+  "license": "MIT",
+  "keywords": ["code-review", "pull-requests", "github", "heydeer"]
+}
